@@ -1,0 +1,103 @@
+
+#######################################################################
+##                                                                   ##
+##                  Single chain_4000 beads                          ##
+##                         Jan 2017                                  ##
+##                                                                   ##
+#######################################################################
+
+units		    lj
+boundary	    p p p
+atom_style	    molecular
+read_data	    Chain_N90.data
+#read_restart		restart.Chain90.300000000
+
+variable        root index Chain90
+variable        Nf equal 100000
+variable        Ne equal 100
+variable        Nr equal ${Nf}/${Ne}
+variable        Nrestart equal 10000000
+
+variable	RandGen equal 1011
+variable        Nrun equal 10000000#100000000
+variable        Ndump equal 100000
+variable	epsilon equal 0.25
+
+########################((General information))#######################
+
+compute         xAtom all property/atom x y z
+variable        x1 equal c_xAtom[1][1]
+variable        y1 equal c_xAtom[1][2]
+variable        z1 equal c_xAtom[1][3]
+variable        x30 equal c_xAtom[30][1]
+variable        y30 equal c_xAtom[30][2]
+variable        z30 equal c_xAtom[30][3]
+variable        x60 equal c_xAtom[60][1]
+variable        y60 equal c_xAtom[60][2]
+variable        z60 equal c_xAtom[60][3]
+variable        x90 equal c_xAtom[90][1]
+variable        y90 equal c_xAtom[90][2]
+variable        z90 equal c_xAtom[90][3]
+
+
+dump            total all xyz ${Ndump} dump.equi.xyz
+dump_modify 	total flush yes
+
+#dump		total all custom ${Ndump} positions_${epsilon}.lammpstrj type x y z 
+#dump_modify	total sort id
+
+
+variable	epsilon1 equal 0.1
+variable	epsilon2 equal 1.0
+
+variable	epsilon_11 equal ${epsilon1}
+variable	epsilon_22 equal ${epsilon2}
+variable	epsilon_23 equal ${epsilon2}
+variable	epsilon_24 equal ${epsilon2}
+variable	epsilon_25 equal ${epsilon2}
+variable	epsilon_33 equal ${epsilon2}
+variable	epsilon_34 equal ${epsilon2}
+variable	epsilon_35 equal ${epsilon2}
+variable	epsilon_44 equal ${epsilon2}
+variable	epsilon_45 equal ${epsilon2}
+variable	epsilon_55 equal ${epsilon2}
+
+
+fix		1 all langevin 1. 1.0 10 ${RandGen}
+fix		2 all nve
+
+######################### Start of Loop #####################################
+
+bond_style      fene
+bond_coeff      1       30.0    1.5     ${epsilon}     1.0
+
+pair_style	lj/cut 3.0
+pair_coeff	* * ${epsilon_11} 1
+pair_coeff	2 2 ${epsilon_22} 1
+pair_coeff	2 3 ${epsilon_23} 1
+pair_coeff	2 4 ${epsilon_24} 1
+pair_coeff	2 5 ${epsilon_25} 1
+pair_coeff	3 3 ${epsilon_33} 1
+pair_coeff	3 4 ${epsilon_34} 1
+pair_coeff	3 5 ${epsilon_35} 1
+pair_coeff	4 4 ${epsilon_44} 1
+pair_coeff	4 5 ${epsilon_45} 1
+pair_coeff	5 5 ${epsilon_55} 1
+
+
+#special_bonds	lj 0.0 0.0 0.0
+special_bonds   fene
+
+neighbor	2.0 bin
+neigh_modify    every 1 delay 10 check yes
+
+restart         ${Nrestart} restart.${root}
+
+thermo_style	custom step temp pe ke etotal v_epsilon
+thermo		${Nf}
+
+fix             extra1 all print 100 "${x1} ${y1} ${z1} ${x30} ${y30} ${z30} ${x60} ${y60} ${z60} ${x90} ${y90} ${z90}" screen no title "" file Pos_${epsilon}.txt
+
+timestep	0.01
+
+run		${Nrun}
