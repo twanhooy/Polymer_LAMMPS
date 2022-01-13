@@ -10,4 +10,4 @@
 #SBATCH --mem=10G
  
 
-lmp -in in.N90_M_40_eps_11_zeta_1_cross
+lmp -in in.N90_M_40_eps_11_zeta_1_cross_indep
